@@ -2,6 +2,7 @@ import os
 import datetime
 import hashlib
 from typing import Tuple, Optional, Union, Dict, Any, List
+from pymongo.errors import ServerSelectionTimeoutError
 
 import streamlit as st
 from pymongo import MongoClient
@@ -140,14 +141,34 @@ def is_admin(email: str) -> bool:
 def get_db():
     """
     Retorna uma instância do banco de dados MongoDB.
-    Use st.secrets ou variáveis de ambiente para configurar.
+    Faz um ping ao servidor para validar a conexão.
     """
     uri = st.secrets.get("MONGODB_URI", os.getenv("MONGODB_URI", ""))
     db_name = st.secrets.get("MONGODB_DB", os.getenv("MONGODB_DB", "aieduc_site"))
+
     if not uri:
         st.error("Configuração do MongoDB ausente. Defina MONGODB_URI e MONGODB_DB em st.secrets ou nas variáveis de ambiente.")
         st.stop()
-    client = MongoClient(uri)
+
+    # Timeout menor para falhar mais rápido em caso de problema
+    client = MongoClient(uri, serverSelectionTimeoutMS=5000)
+
+    try:
+        # Teste simples de conectividade
+        client.admin.command("ping")
+    except ServerSelectionTimeoutError as e:
+        st.error(
+            "Não foi possível conectar ao MongoDB.\n\n"
+            "Verifique se:\n"
+            "1) A connection string (MONGODB_URI) está correta.\n"
+            "2) O cluster no Atlas está ativo.\n"
+            "3) O IP do Streamlit Cloud está autorizado em Network Access "
+            "(por exemplo, 0.0.0.0/0 para testes).\n"
+        )
+        # Opcional: mostrar um pedaço da mensagem original em ambiente de debug
+        # st.text(str(e))
+        st.stop()
+
     return client[db_name]
 
 
