@@ -14,54 +14,82 @@ from email.message import EmailMessage
 # ============================================================
 
 st.set_page_config(
-    page_title="AI & Data Consulting",
-    page_icon="💻",
+    page_title="ULTRACORTEX",
+    page_icon="ICON_IMAGE",
     layout="wide"
 )
 
 # ============================================================
-# Estilos customizados (CSS) com logo central e navegação no topo
+# Estilos customizados (tema escuro, logo central, topo fixo)
 # ============================================================
 
 custom_css = """
 <style>
-/* Fundo claro com leve gradiente */
+
+/* Fundo principal escuro, próximo ao tom do logo */
 .main {
-    background: linear-gradient(180deg, #f5f7fb 0, #ffffff 60%, #f5f7fb 100%);
-    color: #111827;
+    background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
+    color: #e5e7eb;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Títulos */
 h1, h2, h3, h4, h5 {
-    color: #111827;
+    color: #e5e7eb;
 }
 
-/* Barra de navegação superior */
+/* Barra de navegação superior fixa */
 .nav-bar {
-    padding: 1rem 0;
-    margin-bottom: 0.5rem;
+    position: sticky;
+    top: 0;
+    z-index: 999;
+    padding: 0.75rem 0.5rem;
+    background: rgba(15,23,42,0.96);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(148,163,184,0.3);
 }
 
-/* Radio da navegação (remover label) */
+/* Rádio da navegação (ocultar label padrão) */
 .nav-container label {
     display: none;
+}
+
+/* Centralizar opções da navegação */
+.nav-container {
+    display: flex;
+    justify-content: center;
+}
+
+/* Ajustar margens do radio horizontal */
+.nav-container div[role="radiogroup"] {
+    gap: 1.25rem;
+}
+
+/* Logo central no topo da página */
+.center-logo {
+    text-align: center;
+    margin: 1.5rem 0 1.5rem 0;
+}
+
+/* Limitar largura do logo */
+.center-logo img {
+    max-width: 260px;
 }
 
 /* Cards de serviços e cursos */
 .service-card, .course-card {
     padding: 1.3rem 1.4rem;
     border-radius: 1.2rem;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 16px 30px rgba(15,23,42,0.08);
+    background: #020617;
+    border: 1px solid rgba(148,163,184,0.55);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.8);
     margin-bottom: 1.2rem;
 }
 
-/* Imagem no centro (logo principal) */
-.center-logo {
-    text-align: center;
-    margin: 0.5rem 0 1rem 0;
+/* Imagem de curso no card */
+.course-image {
+    border-radius: 1rem;
+    margin-bottom: 0.8rem;
 }
 
 /* Subtítulos */
@@ -69,7 +97,7 @@ h1, h2, h3, h4, h5 {
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: #6b7280;
+    color: #9ca3af;
 }
 
 /* Destaque de texto pequeno */
@@ -77,16 +105,42 @@ h1, h2, h3, h4, h5 {
     display: inline-block;
     padding: 0.2rem 0.7rem;
     border-radius: 999px;
-    border: 1px solid #2563eb;
+    border: 1px solid #38bdf8;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: #2563eb;
+    color: #38bdf8;
 }
 
-/* Barra lateral (login / cadastro) */
+/* Badge de curso destaque */
+.badge-destaque {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    background: rgba(251,191,36,0.14);
+    color: #facc15;
+    border: 1px solid rgba(250,204,21,0.7);
+}
+
+/* Preço do curso */
+.course-price {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #4ade80;
+}
+
+/* Próxima turma */
+.course-next {
+    font-size: 0.9rem;
+    color: #e5e7eb;
+}
+
+/* Sidebar (login / cadastro) */
 section[data-testid="stSidebar"] {
-    background-color: #0f172a;
+    background-color: #020617;
     color: #e5e7eb;
 }
 
@@ -107,9 +161,9 @@ section[data-testid="stSidebar"] {
 /* Inputs de texto e área de texto */
 .stTextInput input,
 .stTextArea textarea {
-    background-color: #f9fafb;
-    color: #111827;
-    border: 1px solid #d1d5db;
+    background-color: #020617;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
 }
 
 /* Mensagens */
@@ -121,7 +175,7 @@ div.stAlert {
 st.markdown(custom_css, unsafe_allow_html=True)
 
 # ============================================================
-# Configurações de admins e e-mail
+# Configurações de admins e e mail
 # ============================================================
 
 ADMIN_EMAILS: List[str] = [
@@ -137,7 +191,6 @@ def is_admin(email: str) -> bool:
     if not email:
         return False
     return email.lower() in ADMIN_EMAILS
-
 
 # ============================================================
 # Conexão com MongoDB
@@ -173,12 +226,12 @@ def get_db():
 db = get_db()
 
 # ============================================================
-# Funções de e-mail
+# Funções de e mail
 # ============================================================
 
 def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
     """
-    Envia e-mail via SMTP com parâmetros definidos em st.secrets ou variáveis de ambiente.
+    Envia e mail via SMTP com parâmetros definidos em st.secrets ou variáveis de ambiente.
     Se não estiver configurado, a função simplesmente retorna.
     """
     smtp_host = st.secrets.get("SMTP_HOST", os.getenv("SMTP_HOST", ""))
@@ -191,7 +244,7 @@ def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
     use_tls = str(st.secrets.get("SMTP_USE_TLS", os.getenv("SMTP_USE_TLS", "true"))).lower() == "true"
     from_email = DEFAULT_FROM_EMAIL or smtp_user or "no-reply@example.com"
 
-    if isinstance(to, list):
+    if isinstance(to, List):
         recipients = [t for t in to if t]
     else:
         recipients = [to] if to else []
@@ -214,7 +267,6 @@ def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
             server.send_message(msg)
     except Exception:
         pass
-
 
 # ============================================================
 # Funções de autenticação
@@ -243,7 +295,7 @@ def verify_password(password: str, stored_hash: str) -> bool:
 def register_user(name: str, email: str, password: str) -> Tuple[bool, str]:
     users_col = db["users"]
     if users_col.find_one({"email": email.lower().strip()}):
-        return False, "E-mail já cadastrado."
+        return False, "E mail já cadastrado."
     pwd_hash = hash_password(password)
     normalized_email = email.lower().strip()
     users_col.insert_one(
@@ -256,7 +308,6 @@ def register_user(name: str, email: str, password: str) -> Tuple[bool, str]:
         }
     )
 
-    # E-mail para o usuário
     try:
         body_user = (
             f"Olá, {name}.\n\n"
@@ -267,19 +318,18 @@ def register_user(name: str, email: str, password: str) -> Tuple[bool, str]:
         )
         send_email(
             to=normalized_email,
-            subject="Bem-vindo(a) à plataforma AI & Data Consulting",
+            subject="Bem vindo(a) à plataforma AI & Data Consulting",
             body=body_user
         )
     except Exception:
         pass
 
-    # E-mail de notificação para admins
     if ADMIN_EMAILS:
         try:
             body_admin = (
                 "Novo cadastro de usuário no site AI & Data Consulting.\n\n"
                 f"Nome: {name}\n"
-                f"E-mail: {normalized_email}\n"
+                f"E mail: {normalized_email}\n"
                 f"Data: {datetime.datetime.utcnow().isoformat()} (UTC)\n"
             )
             send_email(
@@ -331,12 +381,15 @@ def resolve_image_path(path_or_url: str) -> Optional[str]:
     return None
 
 # ============================================================
-# Cursos no MongoDB (com fallback local)
+# Cursos no MongoDB (com vitrine e fallback local)
 # ============================================================
 
 def get_courses():
     """
     Tenta carregar cursos da collection 'courses'.
+    Campos usados:
+      nome, categoria, nivel, descricao, carga_horaria,
+      tag, imagem_url, preco, destaque, proxima_turma
     Se não houver dados, utiliza uma lista local de cursos exemplos.
     """
     courses_col = db["courses"]
@@ -354,66 +407,86 @@ def get_courses():
                 "descricao": c.get("descricao", ""),
                 "carga_horaria": c.get("carga_horaria", ""),
                 "tag": c.get("tag", ""),
-                "imagem_url": c.get("imagem_url", "")
+                "imagem_url": c.get("imagem_url", ""),
+                "preco": c.get("preco", ""),
+                "destaque": c.get("destaque", False),
+                "proxima_turma": c.get("proxima_turma", "")
             }
             for c in cursos_db
         ]
 
-    # Fallback estático para versão inicial
     return [
         {
             "nome": "Formação em Python para Programação",
             "categoria": "Programação",
             "nivel": "Iniciante a Intermediário",
-            "descricao": "Curso focado em resolução de problemas reais, boas práticas e uso de bibliotecas modernas.",
+            "descricao": "Curso focado em problemas reais e boas práticas modernas em Python.",
             "carga_horaria": "24h",
             "tag": "Python",
-            "imagem_url": ""
+            "imagem_url": "",
+            "preco": "997,00",
+            "destaque": True,
+            "proxima_turma": "Próxima turma: Setembro 2025"
         },
         {
             "nome": "Ciência de Dados Aplicada a Negócios",
             "categoria": "Ciência de Dados",
             "nivel": "Intermediário",
-            "descricao": "Da coleta à visualização, com foco em métricas de negócio, storytelling e impacto em decisões.",
+            "descricao": "Da coleta à visualização com foco em métricas de negócio e tomada de decisão.",
             "carga_horaria": "32h",
             "tag": "Data Science",
-            "imagem_url": ""
+            "imagem_url": "",
+            "preco": "1.297,00",
+            "destaque": True,
+            "proxima_turma": "Próxima turma: Outubro 2025"
         },
         {
             "nome": "Inteligência Artificial e Machine Learning",
             "categoria": "IA e ML",
             "nivel": "Intermediário a Avançado",
-            "descricao": "Modelos preditivos, pipelines, explicabilidade e implantação em ambientes produtivos.",
+            "descricao": "Modelos preditivos, pipelines e implantação em ambiente produtivo.",
             "carga_horaria": "36h",
             "tag": "Machine Learning",
-            "imagem_url": ""
+            "imagem_url": "",
+            "preco": "1.497,00",
+            "destaque": True,
+            "proxima_turma": "Próxima turma: Novembro 2025"
         },
         {
             "nome": "Visualização de Dados e Storytelling",
             "categoria": "Visualização",
             "nivel": "Intermediário",
-            "descricao": "Dashboards, gráficos eficientes e comunicação orientada a executivos.",
+            "descricao": "Dashboards, gráficos eficientes e comunicação com executivos.",
             "carga_horaria": "20h",
             "tag": "Data Viz",
-            "imagem_url": ""
+            "imagem_url": "",
+            "preco": "897,00",
+            "destaque": False,
+            "proxima_turma": "Próxima turma: Em breve"
         },
         {
             "nome": "Estrutura de Dados e Algoritmos",
             "categoria": "Fundamentos",
             "nivel": "Intermediário",
-            "descricao": "Base de estruturas de dados e algoritmos para soluções escaláveis.",
+            "descricao": "Fundamentos sólidos de estruturas de dados e algoritmos.",
             "carga_horaria": "24h",
             "tag": "Algoritmos",
-            "imagem_url": ""
+            "imagem_url": "",
+            "preco": "997,00",
+            "destaque": False,
+            "proxima_turma": "Próxima turma: Em breve"
         },
         {
             "nome": "Banco de Dados Relacionais e NoSQL",
             "categoria": "Banco de Dados",
             "nivel": "Intermediário",
-            "descricao": "Modelagem, SQL, MongoDB e conceitos de bancos híbridos para aplicações modernas.",
+            "descricao": "Modelagem, SQL, MongoDB e conceitos de bancos híbridos modernos.",
             "carga_horaria": "28h",
             "tag": "Databases",
-            "imagem_url": ""
+            "imagem_url": "",
+            "preco": "1.097,00",
+            "destaque": False,
+            "proxima_turma": "Próxima turma: Em breve"
         },
     ]
 
@@ -430,17 +503,15 @@ def sidebar_auth():
         key="auth_tab"
     )
 
-    # Placeholder para futura integração de Google OAuth
     st.sidebar.markdown(
-        "_No futuro, aqui poderá haver um botão de **Entrar com Google**, "
-        "integrado ao OAuth do Google._"
+        "_No futuro, poderá haver um botão de **Entrar com Google** integrado ao OAuth do Google._"
     )
 
     if st.session_state["user"] is None:
 
         if aba == "Entrar":
             with st.sidebar.form("login_form"):
-                email = st.text_input("E-mail")
+                email = st.text_input("E mail")
                 password = st.text_input("Senha", type="password")
                 submitted = st.form_submit_button("Entrar")
 
@@ -453,7 +524,6 @@ def sidebar_auth():
                             "_id": str(result["_id"])
                         }
                         st.sidebar.success("Login realizado com sucesso. Redirecionando...")
-                        # Redireciona após ~1,5s
                         st.sidebar.markdown(
                             "<script>setTimeout(function(){window.location.reload();},1500);</script>",
                             unsafe_allow_html=True
@@ -464,7 +534,7 @@ def sidebar_auth():
         if aba == "Cadastrar":
             with st.sidebar.form("register_form"):
                 name = st.text_input("Nome completo")
-                email = st.text_input("E-mail corporativo ou pessoal")
+                email = st.text_input("E mail corporativo ou pessoal")
                 password = st.text_input("Senha", type="password")
                 password2 = st.text_input("Confirmar senha", type="password")
                 submitted = st.form_submit_button("Criar conta")
@@ -478,7 +548,6 @@ def sidebar_auth():
                         ok, msg = register_user(name, email, password)
                         if ok:
                             st.sidebar.success(msg + " Redirecionando para o login...")
-                            # Mudar aba para "Entrar" e recarregar
                             st.session_state["auth_tab"] = "Entrar"
                             st.sidebar.markdown(
                                 "<script>setTimeout(function(){window.location.reload();},1500);</script>",
@@ -494,7 +563,7 @@ def sidebar_auth():
             st.experimental_rerun()
 
 # ============================================================
-# Navegação superior e logo central
+# Navegação superior fixa e logo central
 # ============================================================
 
 def top_navigation() -> str:
@@ -512,6 +581,7 @@ def top_navigation() -> str:
         st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     return page
+
 
 def show_center_logo():
     hero_image_config = st.secrets.get("HERO_IMAGE", os.getenv("HERO_IMAGE", "images/hero_empresa.png"))
@@ -536,8 +606,8 @@ def page_home():
     st.markdown("### Inteligência Artificial e Ciência de Dados aplicados ao seu negócio")
     st.markdown(
         """
-        Atuamos na estruturação de projetos de IA, Ciência de Dados e Visão Computacional e, ao mesmo tempo, 
-        oferecemos trilhas completas de cursos em tecnologia para formar e fortalecer o seu time.
+        Estruturamos projetos de IA, Ciência de Dados e Visão Computacional, e oferecemos trilhas completas de cursos em tecnologia
+        para formar e fortalecer o seu time técnico e de gestão.
         """
     )
 
@@ -639,9 +709,9 @@ def page_services():
 
 def page_courses():
     show_center_logo()
-    st.markdown("### Cursos de Tecnologia, carro chefe da empresa")
+    st.markdown("### Vitrine de cursos e turmas")
     st.markdown(
-        '<p class="subtitle">Formações práticas em Python, Ciência de Dados, IA, Visualização e Bancos de Dados</p>',
+        '<p class="subtitle">Cursos práticos em Python, Ciência de Dados, IA, Visualização e Bancos de Dados</p>',
         unsafe_allow_html=True
     )
 
@@ -653,7 +723,9 @@ def page_courses():
     cols = [col_a, col_b, col_c]
     idx_col = 0
 
-    for curso in cursos:
+    inscricoes_col = db["inscricoes"]
+
+    for idx, curso in enumerate(cursos):
         if filtro_tag and curso.get("tag") not in filtro_tag:
             continue
 
@@ -664,28 +736,63 @@ def page_courses():
             if img_path:
                 st.image(img_path, use_column_width=True)
 
+            topo = ""
+            if curso.get("destaque"):
+                topo = '<span class="badge-destaque">Curso carro chefe</span>'
+            elif curso.get("tag"):
+                topo = f'<span class="badge">{curso["tag"]}</span>'
+
+            if topo:
+                st.markdown(topo, unsafe_allow_html=True)
+
             st.markdown(f"#### {curso['nome']}")
             st.markdown(
                 f"**Categoria:** {curso['categoria']}  \n"
                 f"**Nível:** {curso['nivel']}  \n"
                 f"**Carga horária:** {curso['carga_horaria']}"
             )
+
+            preco = curso.get("preco", "")
+            if preco:
+                st.markdown(f'<div class="course-price">R$ {preco}</div>', unsafe_allow_html=True)
+
+            proxima = curso.get("proxima_turma", "")
+            if proxima:
+                st.markdown(f'<div class="course-next">{proxima}</div>', unsafe_allow_html=True)
+
             st.markdown("")
             st.markdown(curso["descricao"])
+
             st.markdown("")
-            st.markdown(
-                f'<span class="badge">{curso["tag"]}</span>',
-                unsafe_allow_html=True
-            )
+            btn_key = f"inscricao_{idx}"
+            if st.button("Inscrever me", key=btn_key):
+                if st.session_state["user"] is None:
+                    st.warning("Faça login na barra lateral para concluir a pré inscrição neste curso.")
+                else:
+                    user = st.session_state["user"]
+                    inscricoes_col.insert_one(
+                        {
+                            "user_id": user["_id"],
+                            "user_name": user["name"],
+                            "user_email": user["email"],
+                            "curso_nome": curso["nome"],
+                            "curso_tag": curso.get("tag", ""),
+                            "curso_preco": preco,
+                            "curso_proxima_turma": proxima,
+                            "created_at": datetime.datetime.utcnow()
+                        }
+                    )
+                    st.success("Pré inscrição registrada. Entraremos em contato com você para próximos passos.")
+
             st.markdown("</div>", unsafe_allow_html=True)
 
         idx_col = (idx_col + 1) % 3
 
     st.markdown("---")
     if st.session_state["user"] is None:
-        st.info("Faça login ou cadastro na barra lateral para receber novidades sobre novos cursos e turmas.")
+        st.info("Faça login ou cadastro na barra lateral para gerenciar suas pré inscrições.")
     else:
-        st.success("Você está logado. Em versões futuras, esta área exibirá sua trilha personalizada de cursos e seu progresso.")
+        st.success("Você está logado. Em versões futuras, esta área exibirá suas inscrições e acesso às aulas.")
 
 
 def page_contact():
@@ -697,7 +804,7 @@ def page_contact():
     with col1:
         with st.form("contact_form"):
             nome = st.text_input("Nome")
-            email = st.text_input("E-mail")
+            email = st.text_input("E mail")
             empresa = st.text_input("Empresa / Instituição")
             tipo_interesse = st.selectbox(
                 "Tipo de interesse",
@@ -750,7 +857,7 @@ def page_contact():
                         body_admin = (
                             "Novo lead recebido pelo formulário de contato.\n\n"
                             f"Nome: {nome}\n"
-                            f"E-mail: {email}\n"
+                            f"E mail: {email}\n"
                             f"Empresa: {empresa}\n"
                             f"Tipo de interesse: {tipo_interesse}\n"
                             f"Mensagem: {mensagem}\n"
@@ -795,7 +902,7 @@ def page_dashboard_user():
         return
 
     user = st.session_state["user"]
-    st.success(f"Bem-vindo, {user['name']}!")
+    st.success(f"Bem vindo, {user['name']}!")
 
     st.markdown(
         """
@@ -838,6 +945,9 @@ def page_admin():
             carga_horaria = st.text_input("Carga horária (ex.: 24h, 32h)")
             tag = st.text_input("Tag principal (ex.: Python, Data Science)")
             imagem_url = st.text_input("URL ou caminho da imagem do curso (opcional)")
+            preco = st.text_input("Preço (ex.: 997,00)")
+            proxima_turma = st.text_input("Próxima turma (texto livre, ex.: Setembro 2025)")
+            destaque = st.checkbox("Curso carro chefe (destaque)", value=False)
             descricao = st.text_area("Descrição do curso")
             ordem = st.number_input("Ordem de exibição", min_value=0, max_value=999, value=0, step=1)
             ativo = st.checkbox("Curso ativo", value=True)
@@ -855,6 +965,9 @@ def page_admin():
                         "carga_horaria": carga_horaria,
                         "tag": tag,
                         "imagem_url": imagem_url,
+                        "preco": preco,
+                        "proxima_turma": proxima_turma,
+                        "destaque": bool(destaque),
                         "descricao": descricao,
                         "ordem": int(ordem),
                         "ativo": bool(ativo),
@@ -879,6 +992,9 @@ def page_admin():
                 "Nível": c.get("nivel", ""),
                 "Carga horária": c.get("carga_horaria", ""),
                 "Tag": c.get("tag", ""),
+                "Preço": c.get("preco", ""),
+                "Próxima turma": c.get("proxima_turma", ""),
+                "Destaque": c.get("destaque", False),
                 "Ordem": c.get("ordem", 0),
                 "Ativo": c.get("ativo", False),
             }
@@ -921,12 +1037,9 @@ def page_admin():
 def main():
     sidebar_auth()
 
-    st.markdown("---")
+    st.markdown("")
     page = top_navigation()
 
-    # Acrescenta opção Admin dinamicamente
-    # A navegação superior principal controla as páginas públicas
-    # O Admin é acessado por um botão separado quando habilitado
     if st.session_state["user"] is not None and is_admin(st.session_state["user"].get("email", "")):
         st.markdown("")
         if st.button("Ir para o painel Admin"):
