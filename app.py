@@ -2,10 +2,10 @@ import os
 import datetime
 import hashlib
 from typing import Tuple, Optional, Union, Dict, Any, List
-from pymongo.errors import ServerSelectionTimeoutError
 
 import streamlit as st
 from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
 import smtplib
 from email.message import EmailMessage
 
@@ -20,39 +20,112 @@ st.set_page_config(
 )
 
 # ============================================================
-# Estilos customizados (CSS) estilo Dracula
+# Estilos customizados (CSS) inspirados em página de cursos
 # ============================================================
 
 custom_css = """
 <style>
-/* Fundo inspirado no tema Dracula */
+/* Fundo claro com leve textura */
 .main {
-    background: #282a36;
-    color: #f8f8f2;
+    background: linear-gradient(180deg, #f5f7fb 0, #ffffff 60%, #f5f7fb 100%);
+    color: #111827;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
 /* Títulos */
 h1, h2, h3, h4, h5 {
-    color: #f8f8f2;
+    color: #111827;
 }
 
-/* Caixa de destaque (hero) */
+/* Hero principal */
 .hero-box {
     padding: 2.5rem 2rem;
     border-radius: 1.5rem;
-    background: linear-gradient(135deg, rgba(189,147,249,0.25), rgba(80,250,123,0.12));
-    border: 1px solid #6272a4;
-    box-shadow: 0 24px 60px rgba(0,0,0,0.6);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 22px 45px rgba(15,23,42,0.12);
+}
+
+/* Pequena tag no topo */
+.hero-badge {
+    display: inline-block;
+    padding: 0.25rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(37,99,235,0.06);
+    color: #1d4ed8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+/* Título hero */
+.hero-title {
+    font-size: 2.2rem;
+    line-height: 1.2;
+    font-weight: 750;
+    margin-top: 0.8rem;
+    margin-bottom: 0.4rem;
+}
+
+/* Subtítulo hero */
+.hero-subtitle {
+    font-size: 1rem;
+    color: #4b5563;
+    max-width: 32rem;
+    line-height: 1.6;
+}
+
+/* Botões de call to action */
+.hero-actions {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+}
+
+.cta-primary {
+    background: #2563eb;
+    color: #ffffff;
+    padding: 0.8rem 1.5rem;
+    border-radius: 999px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cta-primary:hover {
+    background: #1d4ed8;
+}
+
+.cta-secondary {
+    background: #fbbf24;
+    color: #92400e;
+    padding: 0.8rem 1.5rem;
+    border-radius: 999px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.cta-secondary:hover {
+    background: #f59e0b;
 }
 
 /* Cards de serviços e cursos */
 .service-card, .course-card {
     padding: 1.3rem 1.4rem;
     border-radius: 1.2rem;
-    background: #44475a;
-    border: 1px solid #6272a4;
-    box-shadow: 0 18px 40px rgba(0,0,0,0.7);
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 16px 30px rgba(15,23,42,0.08);
     margin-bottom: 1.2rem;
+}
+
+/* Imagem de curso no card */
+.course-image {
+    border-radius: 1rem;
+    margin-bottom: 0.6rem;
 }
 
 /* Subtítulos */
@@ -60,54 +133,50 @@ h1, h2, h3, h4, h5 {
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    color: #bd93f9;
+    color: #6b7280;
 }
 
 /* Destaque de texto pequeno */
 .badge {
     display: inline-block;
-    padding: 0.15rem 0.65rem;
+    padding: 0.2rem 0.7rem;
     border-radius: 999px;
-    border: 1px solid #ff79c6;
+    border: 1px solid #2563eb;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.16em;
-    color: #ff79c6;
+    color: #2563eb;
 }
 
-/* Sidebar */
+/* Barra lateral */
 section[data-testid="stSidebar"] {
-    background-color: #1e1f29;
-    color: #f8f8f2;
+    background-color: #0f172a;
+    color: #e5e7eb;
 }
 
-/* Botões padrão */
+/* Botões padrão do Streamlit */
 .stButton>button {
-    background-color: #bd93f9;
-    color: #282a36;
+    background-color: #2563eb;
+    color: #ffffff;
     border-radius: 999px;
     border: none;
+    font-weight: 600;
 }
 
 .stButton>button:hover {
-    background-color: #ff79c6;
-    color: #282a36;
+    background-color: #1d4ed8;
+    color: #ffffff;
 }
 
-/* Entradas de texto e selects */
+/* Inputs de texto e área de texto */
 .stTextInput input,
 .stTextArea textarea {
-    background-color: #1e1f29;
-    color: #f8f8f2;
-    border: 1px solid #6272a4;
+    background-color: #f9fafb;
+    color: #111827;
+    border: 1px solid #d1d5db;
 }
 
-.stSelectbox div[data-baseweb="select"] {
-    background-color: #1e1f29;
-    color: #f8f8f2;
-}
-
-/* Mensagens de info/sucesso/erro ajustadas ao tema */
+/* Mensagens */
 div.stAlert {
     border-radius: 0.8rem;
 }
@@ -150,23 +219,16 @@ def get_db():
         st.error("Configuração do MongoDB ausente. Defina MONGODB_URI e MONGODB_DB em st.secrets ou nas variáveis de ambiente.")
         st.stop()
 
-    # Timeout menor para falhar mais rápido em caso de problema
     client = MongoClient(uri, serverSelectionTimeoutMS=5000)
 
     try:
-        # Teste simples de conectividade
         client.admin.command("ping")
-    except ServerSelectionTimeoutError as e:
+    except ServerSelectionTimeoutError:
         st.error(
             "Não foi possível conectar ao MongoDB.\n\n"
-            "Verifique se:\n"
-            "1) A connection string (MONGODB_URI) está correta.\n"
-            "2) O cluster no Atlas está ativo.\n"
-            "3) O IP do Streamlit Cloud está autorizado em Network Access "
-            "(por exemplo, 0.0.0.0/0 para testes).\n"
+            "Verifique se a string de conexão está correta, se o cluster está ativo "
+            "e se o IP do Streamlit está autorizado no MongoDB Atlas."
         )
-        # Opcional: mostrar um pedaço da mensagem original em ambiente de debug
-        # st.text(str(e))
         st.stop()
 
     return client[db_name]
@@ -181,11 +243,10 @@ db = get_db()
 def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
     """
     Envia e-mail via SMTP com parâmetros definidos em st.secrets ou variáveis de ambiente.
-    Se não estiver configurado, a função não quebra a aplicação.
+    Se não estiver configurado, a função simplesmente retorna.
     """
     smtp_host = st.secrets.get("SMTP_HOST", os.getenv("SMTP_HOST", ""))
     if not smtp_host:
-        # Integração de e-mail ainda não configurada.
         return
 
     smtp_port = int(st.secrets.get("SMTP_PORT", os.getenv("SMTP_PORT", "587")))
@@ -216,7 +277,6 @@ def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
                 server.login(smtp_user, smtp_password)
             server.send_message(msg)
     except Exception:
-        # Em produção, você pode registrar o erro em log.
         pass
 
 
@@ -311,6 +371,29 @@ if "user" not in st.session_state:
     st.session_state["user"] = None
 
 # ============================================================
+# Utilitário para imagens
+# ============================================================
+
+def resolve_image_path(path_or_url: str) -> Optional[str]:
+    """
+    Permite usar tanto URL completa quanto caminho relativo no repositório.
+    Se o arquivo local não existir, retorna None.
+    """
+    if not path_or_url:
+        return None
+    path_or_url = path_or_url.strip()
+    if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
+        return path_or_url
+    # Tenta caminho direto
+    if os.path.exists(path_or_url):
+        return path_or_url
+    # Tenta dentro de uma pasta padrão de imagens
+    candidate = os.path.join("images", path_or_url)
+    if os.path.exists(candidate):
+        return candidate
+    return None
+
+# ============================================================
 # Cursos no MongoDB (com fallback local)
 # ============================================================
 
@@ -333,7 +416,8 @@ def get_courses():
                 "nivel": c.get("nivel", ""),
                 "descricao": c.get("descricao", ""),
                 "carga_horaria": c.get("carga_horaria", ""),
-                "tag": c.get("tag", "")
+                "tag": c.get("tag", ""),
+                "imagem_url": c.get("imagem_url", "")
             }
             for c in cursos_db
         ]
@@ -346,7 +430,8 @@ def get_courses():
             "nivel": "Iniciante a Intermediário",
             "descricao": "Curso focado em resolução de problemas reais, boas práticas e uso de bibliotecas modernas.",
             "carga_horaria": "24h",
-            "tag": "Python"
+            "tag": "Python",
+            "imagem_url": ""
         },
         {
             "nome": "Ciência de Dados Aplicada a Negócios",
@@ -354,7 +439,8 @@ def get_courses():
             "nivel": "Intermediário",
             "descricao": "Da coleta à visualização, com foco em métricas de negócio, storytelling e impacto em decisões.",
             "carga_horaria": "32h",
-            "tag": "Data Science"
+            "tag": "Data Science",
+            "imagem_url": ""
         },
         {
             "nome": "Inteligência Artificial e Machine Learning",
@@ -362,23 +448,26 @@ def get_courses():
             "nivel": "Intermediário a Avançado",
             "descricao": "Modelos preditivos, pipelines, explicabilidade e implantação em ambientes produtivos.",
             "carga_horaria": "36h",
-            "tag": "Machine Learning"
+            "tag": "Machine Learning",
+            "imagem_url": ""
         },
         {
             "nome": "Visualização de Dados e Storytelling",
             "categoria": "Visualização",
             "nivel": "Intermediário",
-            "descricao": "Dashboards, gráficos eficientes e estratégias de comunicação orientadas a executivos.",
+            "descricao": "Dashboards, gráficos eficientes e comunicação orientada a executivos.",
             "carga_horaria": "20h",
-            "tag": "Data Viz"
+            "tag": "Data Viz",
+            "imagem_url": ""
         },
         {
             "nome": "Estrutura de Dados e Algoritmos",
             "categoria": "Fundamentos",
             "nivel": "Intermediário",
-            "descricao": "Base sólida de estruturas de dados e algoritmos para desenvolvimento de soluções escaláveis.",
+            "descricao": "Base de estruturas de dados e algoritmos para soluções escaláveis.",
             "carga_horaria": "24h",
-            "tag": "Algoritmos"
+            "tag": "Algoritmos",
+            "imagem_url": ""
         },
         {
             "nome": "Banco de Dados Relacionais e NoSQL",
@@ -386,7 +475,8 @@ def get_courses():
             "nivel": "Intermediário",
             "descricao": "Modelagem, SQL, MongoDB e conceitos de bancos híbridos para aplicações modernas.",
             "carga_horaria": "28h",
-            "tag": "Databases"
+            "tag": "Databases",
+            "imagem_url": ""
         },
     ]
 
@@ -445,64 +535,84 @@ def sidebar_auth():
 
 
 def hero_section():
-    st.markdown(
-        """
-        <div class="hero-box">
-            <div class="badge">Consultoria em Inteligência Artificial e Educação em Tecnologia</div>
-            <h1 style="margin-top: 0.8rem; margin-bottom: 0.3rem;">
-                Inteligência Artificial aplicada à decisão de negócio e formação de times em tecnologia
-            </h1>
-            <p style="font-size:1.0rem; color:#f8f8f2; max-width: 820px; line-height: 1.6;">
-                Consultorias, projetos e cursos de alta performance em Python, Ciência de Dados, 
-                Machine Learning, Visão Computacional e Bancos de Dados. Do protótipo à implantação, 
-                com foco em resultado mensurável e formação de equipes.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+    col_left, col_right = st.columns([1.4, 1])
 
-    col1, col2, col3 = st.columns([1.2, 1, 1])
-
-    with col1:
-        st.markdown("#### O que entregamos na prática")
+    with col_left:
         st.markdown(
             """
-            - Estruturação de projetos de IA e Machine Learning
-            - Modelos de Visão Computacional e Reconhecimento de Padrões
-            - Projetos completos de coleta, curadoria e governança de dados
-            - Criação de conjuntos de dados para P&D e inovação
-            - Trilha de cursos para formação de times em tecnologia
+            <div class="hero-box">
+                <div class="hero-badge">Consultoria em IA, Dados e Educação em Tecnologia</div>
+                <h1 class="hero-title">
+                    Torne sua empresa referência em Inteligência Artificial e Ciência de Dados
+                </h1>
+                <p class="hero-subtitle">
+                    Estruturamos projetos de IA, Ciência de Dados e Visão Computacional e formamos times com trilhas de cursos em Python, Machine Learning, Visualização de Dados e Bancos de Dados.
+                </p>
+                <div class="hero-actions">
+                    <button class="cta-primary">Quero estruturar projetos de IA</button>
+                    <button class="cta-secondary">Quero formar meu time em tecnologia</button>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    with col_right:
+        # Imagem principal da empresa
+        hero_image_config = st.secrets.get("HERO_IMAGE", os.getenv("HERO_IMAGE", "images/hero_empresa.png"))
+        img_path = resolve_image_path(hero_image_config)
+        if img_path:
+            st.image(img_path, use_container_width=True)
+        else:
+            st.markdown(
+                """
+                <div class="hero-box">
+                    <h3>Imagem da empresa</h3>
+                    <p style="color:#6b7280;font-size:0.9rem;">
+                        Adicione uma imagem no repositório em <code>images/hero_empresa.png</code> 
+                        ou defina a variável <code>HERO_IMAGE</code> em <strong>Secrets</strong> para personalizar este espaço.
+                    </p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+    st.markdown("")
+    st.markdown("##### Empresas, instituições e equipes que podem se beneficiar")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.markdown(
+            """
+            - Indústrias e serviços que querem usar IA na operação  
+            - Hospitais, universidades e centros de pesquisa  
             """
         )
     with col2:
-        st.markdown("#### Para quem")
         st.markdown(
             """
-            - Empresas que desejam aplicar IA de forma estratégica  
-            - Instituições de ensino e pesquisa  
-            - Indústrias e serviços com foco em produtividade  
-            - Times que precisam acelerar a curva de aprendizado em tecnologia
+            - Escolas, faculdades e hubs de inovação  
+            - Times de dados e tecnologia em expansão  
             """
         )
     with col3:
-        st.markdown("#### Carro-chefe")
-        st.info(
-            "Trilhas completas de **Cursos de Tecnologia**: Python, Ciência de Dados, "
-            "Inteligência Artificial, Visualização de Dados, Estrutura de Dados, "
-            "Banco de Dados e outros."
+        st.markdown(
+            """
+            - Pequenas e médias empresas em transformação digital  
+            - Profissionais que desejam migrar para dados e IA  
+            """
         )
 
 
 def page_home():
     hero_section()
-    st.markdown("")
+    st.markdown("---")
     st.markdown("### Destaques em consultoria e serviços profissionais")
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("##### Consultoria em IA e Machine Learning")
+        st.markdown('<div class="service-card">', unsafe_allow_html=True)
+        st.markdown("#### Consultoria em IA e Machine Learning")
         st.markdown(
             """
             Projetos de ponta a ponta em:
@@ -511,27 +621,32 @@ def page_home():
             - Sistemas de apoio à decisão baseados em dados  
             """
         )
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col2:
-        st.markdown("##### Visão Computacional e Reconhecimento de Padrões")
+        st.markdown('<div class="service-card">', unsafe_allow_html=True)
+        st.markdown("#### Visão Computacional e Reconhecimento de Padrões")
         st.markdown(
             """
-            Soluções em:
+            Soluções para:
             - Inspeção automatizada de qualidade  
             - Detecção de anomalias em imagens  
-            - Reconhecimento de padrões e classificação  
+            - Classificação e reconhecimento de padrões  
             """
         )
+        st.markdown("</div>", unsafe_allow_html=True)
 
     with col3:
-        st.markdown("##### Dados, P&D e Cursos")
+        st.markdown('<div class="service-card">', unsafe_allow_html=True)
+        st.markdown("#### Dados, P&D e Trilha de Cursos")
         st.markdown(
             """
-            - Coleta e curadoria de dados em campo  
-            - Criação de datasets para pesquisa e inovação  
-            - Trilha estruturada de cursos de tecnologia para equipes  
+            - Planejamento e execução de coleta de dados  
+            - Criação de conjuntos de dados para pesquisa  
+            - Trilhas em Python, Ciência de Dados, IA e Bancos de Dados  
             """
         )
+        st.markdown("</div>", unsafe_allow_html=True)
 
 
 def page_services():
@@ -588,9 +703,9 @@ def page_services():
 
 
 def page_courses():
-    st.markdown("### Cursos de Tecnologia - carro chefe da empresa")
+    st.markdown("### Cursos de Tecnologia, carro chefe da empresa")
     st.markdown(
-        '<p class="subtitle">Formações em Python, Ciência de Dados, IA, Visualização, Estruturas de Dados e Bancos de Dados</p>',
+        '<p class="subtitle">Formações práticas em Python, Ciência de Dados, Inteligência Artificial, Visualização e Bancos de Dados</p>',
         unsafe_allow_html=True
     )
 
@@ -609,6 +724,11 @@ def page_courses():
 
         with cols[idx_col]:
             st.markdown('<div class="course-card">', unsafe_allow_html=True)
+
+            img_path = resolve_image_path(curso.get("imagem_url", ""))
+            if img_path:
+                st.image(img_path, use_column_width=True)
+
             st.markdown(f"#### {curso['nome']}")
             st.markdown(
                 f"**Categoria:** {curso['categoria']}  \n"
@@ -783,6 +903,7 @@ def page_admin():
             nivel = st.text_input("Nível (ex.: Iniciante, Intermediário, Avançado)")
             carga_horaria = st.text_input("Carga horária (ex.: 24h, 32h)")
             tag = st.text_input("Tag principal (ex.: Python, Data Science)")
+            imagem_url = st.text_input("URL ou caminho da imagem do curso (opcional)")
             descricao = st.text_area("Descrição do curso")
             ordem = st.number_input("Ordem de exibição", min_value=0, max_value=999, value=0, step=1)
             ativo = st.checkbox("Curso ativo", value=True)
@@ -799,6 +920,7 @@ def page_admin():
                         "nivel": nivel,
                         "carga_horaria": carga_horaria,
                         "tag": tag,
+                        "imagem_url": imagem_url,
                         "descricao": descricao,
                         "ordem": int(ordem),
                         "ativo": bool(ativo),
@@ -817,7 +939,6 @@ def page_admin():
             st.info("Nenhum curso cadastrado ainda.")
             return
 
-        # Tabela resumida
         data_view = [
             {
                 "Nome": c.get("nome", ""),
@@ -832,7 +953,6 @@ def page_admin():
         ]
         st.dataframe(data_view, use_container_width=True)
 
-        # Ações em um curso específico
         st.markdown("#### Editar status ou remover curso")
 
         labels = [
@@ -873,7 +993,6 @@ def main():
 
     pages = ["Início", "Serviços", "Cursos", "Contato", "Área do aluno"]
 
-    # Exibe opção Admin somente para usuários administradores
     if st.session_state["user"] is not None and is_admin(st.session_state["user"].get("email", "")):
         pages.append("Admin")
 
