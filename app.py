@@ -15,22 +15,31 @@ from email.message import EmailMessage
 
 st.set_page_config(
     page_title="ULTRACORTEX",
-    page_icon="ICON_IMAGE",
+    #page_icon="",
     layout="wide"
 )
 
 # ============================================================
-# Estilos customizados (tema escuro, logo central, topo fixo)
+# Estilos customizados - tema escuro, topo fixo, logo central
 # ============================================================
 
 custom_css = """
 <style>
 
-/* Fundo principal escuro, próximo ao tom do logo */
-.main {
+/* Escurecer toda a aplicação */
+html, body {
+    background-color: #020617;
+}
+
+.stApp {
     background: radial-gradient(circle at top, #020617 0, #020617 40%, #020617 100%);
     color: #e5e7eb;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+/* Container principal */
+.block-container {
+    padding-top: 5.0rem;
 }
 
 /* Títulos */
@@ -40,35 +49,39 @@ h1, h2, h3, h4, h5 {
 
 /* Barra de navegação superior fixa */
 .nav-bar {
-    position: sticky;
+    position: fixed;
     top: 0;
+    left: 0;
+    right: 0;
     z-index: 999;
-    padding: 0.75rem 0.5rem;
-    background: rgba(15,23,42,0.96);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid rgba(148,163,184,0.3);
+    padding: 0.6rem 1.0rem;
+    background: rgba(15,23,42,0.98);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(148,163,184,0.4);
+}
+
+/* Container para centralizar a navegação */
+.nav-inner {
+    max-width: 1100px;
+    margin: 0 auto;
 }
 
 /* Rádio da navegação (ocultar label padrão) */
-.nav-container label {
+.nav-inner label {
     display: none;
 }
 
-/* Centralizar opções da navegação */
-.nav-container {
+/* Ajustar grupo de botões da navegação */
+.nav-inner div[role="radiogroup"] {
     display: flex;
     justify-content: center;
-}
-
-/* Ajustar margens do radio horizontal */
-.nav-container div[role="radiogroup"] {
-    gap: 1.25rem;
+    gap: 1.6rem;
 }
 
 /* Logo central no topo da página */
 .center-logo {
     text-align: center;
-    margin: 1.5rem 0 1.5rem 0;
+    margin: 1.2rem 0 1.8rem 0;
 }
 
 /* Limitar largura do logo */
@@ -100,7 +113,7 @@ h1, h2, h3, h4, h5 {
     color: #9ca3af;
 }
 
-/* Destaque de texto pequeno */
+/* Badge padrão */
 .badge {
     display: inline-block;
     padding: 0.2rem 0.7rem;
@@ -158,9 +171,17 @@ section[data-testid="stSidebar"] {
     color: #ffffff;
 }
 
-/* Inputs de texto e área de texto */
+/* Inputs de texto e área de texto no corpo */
 .stTextInput input,
 .stTextArea textarea {
+    background-color: #020617;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
+}
+
+/* Inputs na sidebar podem herdar o mesmo estilo */
+section[data-testid="stSidebar"] .stTextInput input,
+section[data-testid="stSidebar"] .stTextArea textarea {
     background-color: #020617;
     color: #e5e7eb;
     border: 1px solid #4b5563;
@@ -196,11 +217,10 @@ def is_admin(email: str) -> bool:
 # Conexão com MongoDB
 # ============================================================
 
+from pymongo import MongoClient
+from pymongo.errors import ServerSelectionTimeoutError
+
 def get_db():
-    """
-    Retorna uma instância do banco de dados MongoDB.
-    Faz um ping ao servidor para validar a conexão.
-    """
     uri = st.secrets.get("MONGODB_URI", os.getenv("MONGODB_URI", ""))
     db_name = st.secrets.get("MONGODB_DB", os.getenv("MONGODB_DB", "aieduc_site"))
 
@@ -230,10 +250,6 @@ db = get_db()
 # ============================================================
 
 def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
-    """
-    Envia e mail via SMTP com parâmetros definidos em st.secrets ou variáveis de ambiente.
-    Se não estiver configurado, a função simplesmente retorna.
-    """
     smtp_host = st.secrets.get("SMTP_HOST", os.getenv("SMTP_HOST", ""))
     if not smtp_host:
         return
@@ -273,10 +289,6 @@ def send_email(to: Union[str, List[str]], subject: str, body: str) -> None:
 # ============================================================
 
 def hash_password(password: str, salt: Optional[str] = None) -> str:
-    """
-    Hash simples com SHA256 e salt.
-    Para produção, considere usar bibliotecas específicas de segurança.
-    """
     if salt is None:
         salt = os.urandom(16).hex()
     hashed = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
@@ -364,10 +376,6 @@ if "auth_tab" not in st.session_state:
 # ============================================================
 
 def resolve_image_path(path_or_url: str) -> Optional[str]:
-    """
-    Permite usar tanto URL completa quanto caminho relativo no repositório.
-    Se o arquivo local não existir, retorna None.
-    """
     if not path_or_url:
         return None
     path_or_url = path_or_url.strip()
@@ -381,17 +389,10 @@ def resolve_image_path(path_or_url: str) -> Optional[str]:
     return None
 
 # ============================================================
-# Cursos no MongoDB (com vitrine e fallback local)
+# Cursos no MongoDB - vitrine
 # ============================================================
 
 def get_courses():
-    """
-    Tenta carregar cursos da collection 'courses'.
-    Campos usados:
-      nome, categoria, nivel, descricao, carga_horaria,
-      tag, imagem_url, preco, destaque, proxima_turma
-    Se não houver dados, utiliza uma lista local de cursos exemplos.
-    """
     courses_col = db["courses"]
     try:
         cursos_db = list(courses_col.find({"ativo": True}).sort("ordem", 1))
@@ -452,46 +453,10 @@ def get_courses():
             "destaque": True,
             "proxima_turma": "Próxima turma: Novembro 2025"
         },
-        {
-            "nome": "Visualização de Dados e Storytelling",
-            "categoria": "Visualização",
-            "nivel": "Intermediário",
-            "descricao": "Dashboards, gráficos eficientes e comunicação com executivos.",
-            "carga_horaria": "20h",
-            "tag": "Data Viz",
-            "imagem_url": "",
-            "preco": "897,00",
-            "destaque": False,
-            "proxima_turma": "Próxima turma: Em breve"
-        },
-        {
-            "nome": "Estrutura de Dados e Algoritmos",
-            "categoria": "Fundamentos",
-            "nivel": "Intermediário",
-            "descricao": "Fundamentos sólidos de estruturas de dados e algoritmos.",
-            "carga_horaria": "24h",
-            "tag": "Algoritmos",
-            "imagem_url": "",
-            "preco": "997,00",
-            "destaque": False,
-            "proxima_turma": "Próxima turma: Em breve"
-        },
-        {
-            "nome": "Banco de Dados Relacionais e NoSQL",
-            "categoria": "Banco de Dados",
-            "nivel": "Intermediário",
-            "descricao": "Modelagem, SQL, MongoDB e conceitos de bancos híbridos modernos.",
-            "carga_horaria": "28h",
-            "tag": "Databases",
-            "imagem_url": "",
-            "preco": "1.097,00",
-            "destaque": False,
-            "proxima_turma": "Próxima turma: Em breve"
-        },
     ]
 
 # ============================================================
-# Autenticação na Sidebar, com redirecionamento após login/cadastro
+# Autenticação na Sidebar, com redirecionamento
 # ============================================================
 
 def sidebar_auth():
@@ -504,7 +469,7 @@ def sidebar_auth():
     )
 
     st.sidebar.markdown(
-        "_No futuro, poderá haver um botão de **Entrar com Google** integrado ao OAuth do Google._"
+        "_No futuro, poderá haver um botão de Entrar com Google integrado ao OAuth._"
     )
 
     if st.session_state["user"] is None:
@@ -567,19 +532,21 @@ def sidebar_auth():
 # ============================================================
 
 def top_navigation() -> str:
-    st.markdown('<div class="nav-bar">', unsafe_allow_html=True)
-    cols = st.columns([1, 6, 1])
-    with cols[1]:
-        st.markdown('<div class="nav-container">', unsafe_allow_html=True)
-        page = st.radio(
-            "",
-            ["Início", "Serviços", "Cursos", "Contato", "Área do aluno"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="nav_page"
-        )
-        st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="nav-bar"><div class="nav-inner">', unsafe_allow_html=True)
+
+    pages = ["Início", "Serviços", "Cursos", "Contato", "Área do aluno"]
+    if st.session_state["user"] is not None and is_admin(st.session_state["user"].get("email", "")):
+        pages.append("Admin")
+
+    page = st.radio(
+        "",
+        pages,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="nav_page"
+    )
+
+    st.markdown('</div></div>', unsafe_allow_html=True)
     return page
 
 
@@ -593,7 +560,7 @@ def show_center_logo():
             st.image(img_path, use_container_width=False)
         else:
             st.markdown(
-                "_Adicione a imagem `hero_empresa.png` na pasta `images/` ou defina a variável `HERO_IMAGE` em Secrets._"
+                "_Adicione a imagem hero_empresa.png na pasta images/ ou defina a variável HERO_IMAGE em Secrets._"
             )
         st.markdown('</div>', unsafe_allow_html=True)
 
@@ -610,48 +577,6 @@ def page_home():
         para formar e fortalecer o seu time técnico e de gestão.
         """
     )
-
-    st.markdown("---")
-    st.markdown("### Destaques em consultoria e serviços profissionais")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.markdown('<div class="service-card">', unsafe_allow_html=True)
-        st.markdown("#### Consultoria em IA e Machine Learning")
-        st.markdown(
-            """
-            - Modelos preditivos e prescritivos  
-            - Otimização de processos produtivos  
-            - Sistemas de apoio à decisão baseados em dados  
-            """
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col2:
-        st.markdown('<div class="service-card">', unsafe_allow_html=True)
-        st.markdown("#### Visão Computacional e Reconhecimento de Padrões")
-        st.markdown(
-            """
-            - Inspeção automatizada de qualidade  
-            - Detecção de anomalias em imagens  
-            - Classificação e reconhecimento de padrões  
-            """
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
-    with col3:
-        st.markdown('<div class="service-card">', unsafe_allow_html=True)
-        st.markdown("#### Dados, P&D e Trilha de Cursos")
-        st.markdown(
-            """
-            - Coleta e curadoria de dados  
-            - Criação de datasets para pesquisa e inovação  
-            - Trilhas em Python, Ciência de Dados, IA e Bancos de Dados  
-            """
-        )
-        st.markdown("</div>", unsafe_allow_html=True)
-
 
 def page_services():
     show_center_logo()
@@ -672,6 +597,7 @@ def page_services():
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
+    with col2:
         st.markdown('<div class="service-card">', unsafe_allow_html=True)
         st.markdown("#### Projetos de Visão Computacional e Reconhecimento de Padrões")
         st.markdown(
@@ -683,7 +609,9 @@ def page_services():
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
-    with col2:
+    st.markdown("")
+    col3, col4 = st.columns(2)
+    with col3:
         st.markdown('<div class="service-card">', unsafe_allow_html=True)
         st.markdown("#### Conjuntos de Dados e Serviços de Coleta")
         st.markdown(
@@ -694,7 +622,7 @@ def page_services():
             """
         )
         st.markdown("</div>", unsafe_allow_html=True)
-
+    with col4:
         st.markdown('<div class="service-card">', unsafe_allow_html=True)
         st.markdown("#### Palestras, Workshops e Programas In Company")
         st.markdown(
@@ -832,45 +760,6 @@ def page_contact():
                         "created_at": datetime.datetime.utcnow()
                     }
                 )
-
-                try:
-                    body_lead = (
-                        f"Olá, {nome}.\n\n"
-                        "Recebemos sua mensagem na AI & Data Consulting.\n"
-                        "Nossa equipe analisará sua demanda e retornará em breve.\n\n"
-                        "Resumo do contato:\n"
-                        f"Tipo de interesse: {tipo_interesse}\n"
-                        f"Empresa/Instituição: {empresa}\n\n"
-                        "Atenciosamente,\n"
-                        "Equipe AI & Data Consulting"
-                    )
-                    send_email(
-                        to=email,
-                        subject="Recebemos sua mensagem na AI & Data Consulting",
-                        body=body_lead
-                    )
-                except Exception:
-                    pass
-
-                if ADMIN_EMAILS:
-                    try:
-                        body_admin = (
-                            "Novo lead recebido pelo formulário de contato.\n\n"
-                            f"Nome: {nome}\n"
-                            f"E mail: {email}\n"
-                            f"Empresa: {empresa}\n"
-                            f"Tipo de interesse: {tipo_interesse}\n"
-                            f"Mensagem: {mensagem}\n"
-                            f"Data: {datetime.datetime.utcnow().isoformat()} (UTC)\n"
-                        )
-                        send_email(
-                            to=ADMIN_EMAILS,
-                            subject="Novo lead no site AI & Data Consulting",
-                            body=body_admin
-                        )
-                    except Exception:
-                        pass
-
                 st.success("Mensagem enviada com sucesso. Em breve entraremos em contato.")
 
     with col2:
@@ -895,7 +784,7 @@ def page_contact():
 
 def page_dashboard_user():
     show_center_logo()
-    st.markdown("### Área do aluno (versão inicial)")
+    st.markdown("### Área do aluno - versão inicial")
 
     if st.session_state["user"] is None:
         st.info("Faça login pela barra lateral para acessar a área do aluno.")
@@ -903,7 +792,6 @@ def page_dashboard_user():
 
     user = st.session_state["user"]
     st.success(f"Bem vindo, {user['name']}!")
-
     st.markdown(
         """
         Nesta versão inicial, a área do aluno exibe apenas informações básicas.
@@ -915,7 +803,7 @@ def page_dashboard_user():
     )
 
 # ============================================================
-# Painel administrativo de cursos
+# Painel administrativo
 # ============================================================
 
 def page_admin():
@@ -940,13 +828,13 @@ def page_admin():
 
         with st.form("new_course_form"):
             nome = st.text_input("Nome do curso")
-            categoria = st.text_input("Categoria (ex.: Programação, Ciência de Dados)")
-            nivel = st.text_input("Nível (ex.: Iniciante, Intermediário, Avançado)")
-            carga_horaria = st.text_input("Carga horária (ex.: 24h, 32h)")
-            tag = st.text_input("Tag principal (ex.: Python, Data Science)")
+            categoria = st.text_input("Categoria")
+            nivel = st.text_input("Nível")
+            carga_horaria = st.text_input("Carga horária")
+            tag = st.text_input("Tag principal")
             imagem_url = st.text_input("URL ou caminho da imagem do curso (opcional)")
             preco = st.text_input("Preço (ex.: 997,00)")
-            proxima_turma = st.text_input("Próxima turma (texto livre, ex.: Setembro 2025)")
+            proxima_turma = st.text_input("Próxima turma (ex.: Setembro 2025)")
             destaque = st.checkbox("Curso carro chefe (destaque)", value=False)
             descricao = st.text_area("Descrição do curso")
             ordem = st.number_input("Ordem de exibição", min_value=0, max_value=999, value=0, step=1)
@@ -993,7 +881,7 @@ def page_admin():
                 "Carga horária": c.get("carga_horaria", ""),
                 "Tag": c.get("tag", ""),
                 "Preço": c.get("preco", ""),
-                "Próxima turma": c.get("proxima_turma", ""),
+                "Próx turma": c.get("proxima_turma", ""),
                 "Destaque": c.get("destaque", False),
                 "Ordem": c.get("ordem", 0),
                 "Ativo": c.get("ativo", False),
@@ -1036,15 +924,7 @@ def page_admin():
 
 def main():
     sidebar_auth()
-
-    st.markdown("")
     page = top_navigation()
-
-    if st.session_state["user"] is not None and is_admin(st.session_state["user"].get("email", "")):
-        st.markdown("")
-        if st.button("Ir para o painel Admin"):
-            page_admin()
-            return
 
     if page == "Início":
         page_home()
@@ -1056,6 +936,8 @@ def main():
         page_contact()
     elif page == "Área do aluno":
         page_dashboard_user()
+    elif page == "Admin":
+        page_admin()
 
 
 if __name__ == "__main__":
