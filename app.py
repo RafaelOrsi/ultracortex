@@ -1,7 +1,7 @@
 import os
 import datetime
 import hashlib
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Union, Dict, Any
 
 import streamlit as st
 from pymongo import MongoClient
@@ -137,7 +137,7 @@ def register_user(name: str, email: str, password: str) -> Tuple[bool, str]:
     )
     return True, "Cadastro realizado com sucesso. Você já pode fazer login."
 
-def login_user(email: str, password: str) -> Tuple[bool, str | dict]:
+def login_user(email: str, password: str) -> Tuple[bool, Union[str, Dict[str, Any]]]:
     users_col = db["users"]
     user = users_col.find_one({"email": email.lower().strip(), "active": True})
     if not user:
