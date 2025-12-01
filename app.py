@@ -20,12 +20,12 @@ st.set_page_config(
 )
 
 # ============================================================
-# Estilos customizados (CSS) inspirados em página de cursos
+# Estilos customizados (CSS) com logo central e navegação no topo
 # ============================================================
 
 custom_css = """
 <style>
-/* Fundo claro com leve textura */
+/* Fundo claro com leve gradiente */
 .main {
     background: linear-gradient(180deg, #f5f7fb 0, #ffffff 60%, #f5f7fb 100%);
     color: #111827;
@@ -37,79 +37,15 @@ h1, h2, h3, h4, h5 {
     color: #111827;
 }
 
-/* Hero principal */
-.hero-box {
-    padding: 2.5rem 2rem;
-    border-radius: 1.5rem;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 22px 45px rgba(15,23,42,0.12);
+/* Barra de navegação superior */
+.nav-bar {
+    padding: 1rem 0;
+    margin-bottom: 0.5rem;
 }
 
-/* Pequena tag no topo */
-.hero-badge {
-    display: inline-block;
-    padding: 0.25rem 0.9rem;
-    border-radius: 999px;
-    background: rgba(37,99,235,0.06);
-    color: #1d4ed8;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-}
-
-/* Título hero */
-.hero-title {
-    font-size: 2.2rem;
-    line-height: 1.2;
-    font-weight: 750;
-    margin-top: 0.8rem;
-    margin-bottom: 0.4rem;
-}
-
-/* Subtítulo hero */
-.hero-subtitle {
-    font-size: 1rem;
-    color: #4b5563;
-    max-width: 32rem;
-    line-height: 1.6;
-}
-
-/* Botões de call to action */
-.hero-actions {
-    margin-top: 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.7rem;
-}
-
-.cta-primary {
-    background: #2563eb;
-    color: #ffffff;
-    padding: 0.8rem 1.5rem;
-    border-radius: 999px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.cta-primary:hover {
-    background: #1d4ed8;
-}
-
-.cta-secondary {
-    background: #fbbf24;
-    color: #92400e;
-    padding: 0.8rem 1.5rem;
-    border-radius: 999px;
-    border: none;
-    font-weight: 600;
-    cursor: pointer;
-}
-
-.cta-secondary:hover {
-    background: #f59e0b;
+/* Radio da navegação (remover label) */
+.nav-container label {
+    display: none;
 }
 
 /* Cards de serviços e cursos */
@@ -122,10 +58,10 @@ h1, h2, h3, h4, h5 {
     margin-bottom: 1.2rem;
 }
 
-/* Imagem de curso no card */
-.course-image {
-    border-radius: 1rem;
-    margin-bottom: 0.6rem;
+/* Imagem no centro (logo principal) */
+.center-logo {
+    text-align: center;
+    margin: 0.5rem 0 1rem 0;
 }
 
 /* Subtítulos */
@@ -148,13 +84,13 @@ h1, h2, h3, h4, h5 {
     color: #2563eb;
 }
 
-/* Barra lateral */
+/* Barra lateral (login / cadastro) */
 section[data-testid="stSidebar"] {
     background-color: #0f172a;
     color: #e5e7eb;
 }
 
-/* Botões padrão do Streamlit */
+/* Botões padrão */
 .stButton>button {
     background-color: #2563eb;
     color: #ffffff;
@@ -370,6 +306,9 @@ def login_user(email: str, password: str) -> Tuple[bool, Union[str, Dict[str, An
 if "user" not in st.session_state:
     st.session_state["user"] = None
 
+if "auth_tab" not in st.session_state:
+    st.session_state["auth_tab"] = "Entrar"
+
 # ============================================================
 # Utilitário para imagens
 # ============================================================
@@ -384,10 +323,8 @@ def resolve_image_path(path_or_url: str) -> Optional[str]:
     path_or_url = path_or_url.strip()
     if path_or_url.startswith("http://") or path_or_url.startswith("https://"):
         return path_or_url
-    # Tenta caminho direto
     if os.path.exists(path_or_url):
         return path_or_url
-    # Tenta dentro de uma pasta padrão de imagens
     candidate = os.path.join("images", path_or_url)
     if os.path.exists(candidate):
         return candidate
@@ -481,20 +418,32 @@ def get_courses():
     ]
 
 # ============================================================
-# Componentes de interface
+# Autenticação na Sidebar, com redirecionamento após login/cadastro
 # ============================================================
 
 def sidebar_auth():
     st.sidebar.markdown("### Área do aluno")
 
+    aba = st.sidebar.radio(
+        "Acesso",
+        ["Entrar", "Cadastrar"],
+        key="auth_tab"
+    )
+
+    # Placeholder para futura integração de Google OAuth
+    st.sidebar.markdown(
+        "_No futuro, aqui poderá haver um botão de **Entrar com Google**, "
+        "integrado ao OAuth do Google._"
+    )
+
     if st.session_state["user"] is None:
-        aba = st.sidebar.radio("Acesso", ["Entrar", "Cadastrar"])
 
         if aba == "Entrar":
             with st.sidebar.form("login_form"):
                 email = st.text_input("E-mail")
                 password = st.text_input("Senha", type="password")
                 submitted = st.form_submit_button("Entrar")
+
                 if submitted:
                     ok, result = login_user(email, password)
                     if ok:
@@ -503,7 +452,12 @@ def sidebar_auth():
                             "email": result["email"],
                             "_id": str(result["_id"])
                         }
-                        st.sidebar.success(f"Bem-vindo, {result['name']}!")
+                        st.sidebar.success("Login realizado com sucesso. Redirecionando...")
+                        # Redireciona após ~1,5s
+                        st.sidebar.markdown(
+                            "<script>setTimeout(function(){window.location.reload();},1500);</script>",
+                            unsafe_allow_html=True
+                        )
                     else:
                         st.sidebar.error(result)
 
@@ -523,7 +477,13 @@ def sidebar_auth():
                     else:
                         ok, msg = register_user(name, email, password)
                         if ok:
-                            st.sidebar.success(msg)
+                            st.sidebar.success(msg + " Redirecionando para o login...")
+                            # Mudar aba para "Entrar" e recarregar
+                            st.session_state["auth_tab"] = "Entrar"
+                            st.sidebar.markdown(
+                                "<script>setTimeout(function(){window.location.reload();},1500);</script>",
+                                unsafe_allow_html=True
+                            )
                         else:
                             st.sidebar.error(msg)
     else:
@@ -533,78 +493,54 @@ def sidebar_auth():
             st.session_state["user"] = None
             st.experimental_rerun()
 
+# ============================================================
+# Navegação superior e logo central
+# ============================================================
 
-def hero_section():
-    col_left, col_right = st.columns([1.4, 1])
-
-    with col_left:
-        st.markdown(
-            """
-            <div class="hero-box">
-                <div class="hero-badge">Consultoria em IA, Dados e Educação em Tecnologia</div>
-                <h1 class="hero-title">
-                    Torne sua empresa referência em Inteligência Artificial e Ciência de Dados
-                </h1>
-                <p class="hero-subtitle">
-                    Estruturamos projetos de IA, Ciência de Dados e Visão Computacional e formamos times com trilhas de cursos em Python, Machine Learning, Visualização de Dados e Bancos de Dados.
-                </p>
-                <div class="hero-actions">
-                    <button class="cta-primary">Quero estruturar projetos de IA</button>
-                    <button class="cta-secondary">Quero formar meu time em tecnologia</button>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True
+def top_navigation() -> str:
+    st.markdown('<div class="nav-bar">', unsafe_allow_html=True)
+    cols = st.columns([1, 6, 1])
+    with cols[1]:
+        st.markdown('<div class="nav-container">', unsafe_allow_html=True)
+        page = st.radio(
+            "",
+            ["Início", "Serviços", "Cursos", "Contato", "Área do aluno"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="nav_page"
         )
+        st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('</div>', unsafe_allow_html=True)
+    return page
 
-    with col_right:
-        # Imagem principal da empresa
-        hero_image_config = st.secrets.get("HERO_IMAGE", os.getenv("HERO_IMAGE", "images/hero_empresa.png"))
-        img_path = resolve_image_path(hero_image_config)
+def show_center_logo():
+    hero_image_config = st.secrets.get("HERO_IMAGE", os.getenv("HERO_IMAGE", "images/hero_empresa.png"))
+    img_path = resolve_image_path(hero_image_config)
+    cols = st.columns([1, 2, 1])
+    with cols[1]:
+        st.markdown('<div class="center-logo">', unsafe_allow_html=True)
         if img_path:
-            st.image(img_path, use_container_width=True)
+            st.image(img_path, use_container_width=False)
         else:
             st.markdown(
-                """
-                <div class="hero-box">
-                    <h3>Imagem da empresa</h3>
-                    <p style="color:#6b7280;font-size:0.9rem;">
-                        Adicione uma imagem no repositório em <code>images/hero_empresa.png</code> 
-                        ou defina a variável <code>HERO_IMAGE</code> em <strong>Secrets</strong> para personalizar este espaço.
-                    </p>
-                </div>
-                """,
-                unsafe_allow_html=True
+                "_Adicione a imagem `hero_empresa.png` na pasta `images/` ou defina a variável `HERO_IMAGE` em Secrets._"
             )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    st.markdown("")
-    st.markdown("##### Empresas, instituições e equipes que podem se beneficiar")
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(
-            """
-            - Indústrias e serviços que querem usar IA na operação  
-            - Hospitais, universidades e centros de pesquisa  
-            """
-        )
-    with col2:
-        st.markdown(
-            """
-            - Escolas, faculdades e hubs de inovação  
-            - Times de dados e tecnologia em expansão  
-            """
-        )
-    with col3:
-        st.markdown(
-            """
-            - Pequenas e médias empresas em transformação digital  
-            - Profissionais que desejam migrar para dados e IA  
-            """
-        )
-
+# ============================================================
+# Páginas
+# ============================================================
 
 def page_home():
-    hero_section()
+    show_center_logo()
+    st.markdown("### Inteligência Artificial e Ciência de Dados aplicados ao seu negócio")
+    st.markdown(
+        """
+        Atuamos na estruturação de projetos de IA, Ciência de Dados e Visão Computacional e, ao mesmo tempo, 
+        oferecemos trilhas completas de cursos em tecnologia para formar e fortalecer o seu time.
+        """
+    )
+
     st.markdown("---")
     st.markdown("### Destaques em consultoria e serviços profissionais")
 
@@ -615,8 +551,7 @@ def page_home():
         st.markdown("#### Consultoria em IA e Machine Learning")
         st.markdown(
             """
-            Projetos de ponta a ponta em:
-            - Modelagem preditiva e prescritiva  
+            - Modelos preditivos e prescritivos  
             - Otimização de processos produtivos  
             - Sistemas de apoio à decisão baseados em dados  
             """
@@ -628,7 +563,6 @@ def page_home():
         st.markdown("#### Visão Computacional e Reconhecimento de Padrões")
         st.markdown(
             """
-            Soluções para:
             - Inspeção automatizada de qualidade  
             - Detecção de anomalias em imagens  
             - Classificação e reconhecimento de padrões  
@@ -641,8 +575,8 @@ def page_home():
         st.markdown("#### Dados, P&D e Trilha de Cursos")
         st.markdown(
             """
-            - Planejamento e execução de coleta de dados  
-            - Criação de conjuntos de dados para pesquisa  
+            - Coleta e curadoria de dados  
+            - Criação de datasets para pesquisa e inovação  
             - Trilhas em Python, Ciência de Dados, IA e Bancos de Dados  
             """
         )
@@ -650,6 +584,7 @@ def page_home():
 
 
 def page_services():
+    show_center_logo()
     st.markdown("### Serviços de consultoria e projetos profissionais")
 
     col1, col2 = st.columns(2)
@@ -703,14 +638,14 @@ def page_services():
 
 
 def page_courses():
+    show_center_logo()
     st.markdown("### Cursos de Tecnologia, carro chefe da empresa")
     st.markdown(
-        '<p class="subtitle">Formações práticas em Python, Ciência de Dados, Inteligência Artificial, Visualização e Bancos de Dados</p>',
+        '<p class="subtitle">Formações práticas em Python, Ciência de Dados, IA, Visualização e Bancos de Dados</p>',
         unsafe_allow_html=True
     )
 
     cursos = get_courses()
-
     tags = sorted(list({c["tag"] for c in cursos if c.get("tag")}))
     filtro_tag = st.multiselect("Filtrar por trilha ou foco", options=tags, default=[])
 
@@ -754,6 +689,7 @@ def page_courses():
 
 
 def page_contact():
+    show_center_logo()
     st.markdown("### Fale conosco para projetos, consultorias e programas de cursos")
 
     col1, col2 = st.columns([1.2, 1])
@@ -790,7 +726,6 @@ def page_contact():
                     }
                 )
 
-                # E-mail para o lead
                 try:
                     body_lead = (
                         f"Olá, {nome}.\n\n"
@@ -810,7 +745,6 @@ def page_contact():
                 except Exception:
                     pass
 
-                # E-mail para admins
                 if ADMIN_EMAILS:
                     try:
                         body_admin = (
@@ -853,6 +787,7 @@ def page_contact():
 
 
 def page_dashboard_user():
+    show_center_logo()
     st.markdown("### Área do aluno (versão inicial)")
 
     if st.session_state["user"] is None:
@@ -872,12 +807,12 @@ def page_dashboard_user():
         """
     )
 
-
 # ============================================================
 # Painel administrativo de cursos
 # ============================================================
 
 def page_admin():
+    show_center_logo()
     st.markdown("### Painel administrativo de cursos")
 
     if st.session_state["user"] is None:
@@ -893,7 +828,6 @@ def page_admin():
 
     aba_cadastro, aba_gerenciar = st.tabs(["Cadastrar curso", "Gerenciar cursos"])
 
-    # Aba de cadastro
     with aba_cadastro:
         st.markdown("#### Novo curso")
 
@@ -930,7 +864,6 @@ def page_admin():
                     st.success("Curso cadastrado com sucesso.")
                     st.experimental_rerun()
 
-    # Aba de gerenciamento
     with aba_gerenciar:
         st.markdown("#### Cursos cadastrados")
 
@@ -981,7 +914,6 @@ def page_admin():
                 st.success("Curso excluído.")
                 st.experimental_rerun()
 
-
 # ============================================================
 # Layout principal
 # ============================================================
@@ -989,14 +921,17 @@ def page_admin():
 def main():
     sidebar_auth()
 
-    st.sidebar.markdown("---")
+    st.markdown("---")
+    page = top_navigation()
 
-    pages = ["Início", "Serviços", "Cursos", "Contato", "Área do aluno"]
-
+    # Acrescenta opção Admin dinamicamente
+    # A navegação superior principal controla as páginas públicas
+    # O Admin é acessado por um botão separado quando habilitado
     if st.session_state["user"] is not None and is_admin(st.session_state["user"].get("email", "")):
-        pages.append("Admin")
-
-    page = st.sidebar.radio("Navegação", pages)
+        st.markdown("")
+        if st.button("Ir para o painel Admin"):
+            page_admin()
+            return
 
     if page == "Início":
         page_home()
@@ -1008,8 +943,6 @@ def main():
         page_contact()
     elif page == "Área do aluno":
         page_dashboard_user()
-    elif page == "Admin":
-        page_admin()
 
 
 if __name__ == "__main__":
